@@ -1,0 +1,4 @@
+[submodule "submodule/moveit_visual_tools"]
+	path = submodule/moveit_visual_tools
+	url = https://github.com/daeunSong/moveit_visual_tools.git
+	branch = glab/drawing

@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_visual_tools
 )
 
+add_subdirectory(submodule/moveit_visual_tools)
+
 catkin_package()
 
 include_directories(include ${catkin_INCLUDE_DIRS})
