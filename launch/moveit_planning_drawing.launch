@@ -14,7 +14,7 @@
     <arg name="model" default="iiwa7"/>
     <arg name="rviz" default="true" />
     <arg name="trajectory" default="true" />
-    <arg name="world" default="iiwa_drawing.world" />
+    <arg name="world" default="iiwa_drawing" />
     
     <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
            to="/$(arg robot_name)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
