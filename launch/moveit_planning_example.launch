@@ -11,10 +11,11 @@
     <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
     <arg name="robot_name" default="iiwa"/>
     <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
-    <arg name="model" default="iiwa7"/>
+    <arg name="model" default="iiwa7_tool"/>
     <arg name="rviz" default="true" />
     <arg name="trajectory" default="true" />
     <arg name="world" default="iiwa_drawing" />
+    <arg name="rviz_config" default="moveit_drawing.rviz" />
     
     <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
            to="/$(arg robot_name)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
@@ -42,7 +43,7 @@
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
             <arg name="controllers" value="joint_state_controller $(arg hardware_interface)_trajectory_controller" />
             <arg name="robot_name" value="$(arg robot_name)" />
-            <arg name="model" value="$(arg model)" />
+            <arg name="model" value="$(arg robot_name)7" />
         </include>
         
         <!-- Robot interface -->
@@ -63,7 +64,7 @@
 
         <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">
             <arg name="config" value="true"/>
-            <arg name="config_name" value="moveit_drawing.rviz"/>
+            <arg name="config_name" value="$(arg rviz_config)"/>
         </include>
     </group>
     
