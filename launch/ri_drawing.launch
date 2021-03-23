@@ -5,21 +5,15 @@
   <arg name="ee_link" default="iiwa_link_ee"/>
   <arg name="ros_rate" default="10.0"/>
   <arg name="planner_id" default="RRTConnectkConfigDefault"/>
-  <arg name="reference_frame" default=""/>
+  <arg name="reference_frame" default="arm_mount_link"/>
 
-  
-  <!--  This loads the robot description  -->
-  <include file="$(find iiwa_examples)/launch/moveit_planning_drawing.launch">
-    <arg name="sim" value="true"/>
-  </include>
-    
   <!-- Here we call the ROS node we have written, with the parameters on top   -->
-  <node ns="iiwa" name="CommandRobotMoveit" pkg="iiwa_examples" type="drawing_moveit" respawn="false" output="screen">
+  <node name="CommandRobotMoveit" pkg="iiwa_examples" type="drawing_moveit" respawn="false" output="screen">
     <param name="move_group" value="$(arg move_group)"/>
     <param name="ee_link" value="$(arg ee_link)"/>
     <param name="ros_rate" value="$(arg ros_rate)"/>
     <param name="planner_id" value="$(arg planner_id)"/>
     <param name="reference_frame" value="$(arg reference_frame)"/>
   </node>
-  
+
 </launch>
