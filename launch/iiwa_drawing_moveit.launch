@@ -3,7 +3,7 @@
   <!-- Parameters to pass to the ROS node -->
   <arg name="move_group" default="manipulator"/>
   <arg name="ee_link" default="iiwa_link_ee"/>
-  <arg name="ros_rate" default="10.0"/>
+  <arg name="ros_rate" default="0.1"/>
   <arg name="model" default="iiwa7"/>
   <arg name="sim" default="true"/>
   <arg name="world" default="iiwa_drawing"/>
@@ -11,6 +11,12 @@
   <arg name="planner_id" default="RRTConnectkConfigDefault"/>
   <arg name="reference_frame" default=""/>
 
+ <!-- Control Mode -->
+  <arg name="tool_name" default="tool"/> <!-- Name of the tool we are going to use -->
+  <param name="/iiwa/publishJointStates" type="boolean" value="true" /> <!--publish joint states (avoid joint_state_controller)-->
+  <param name="/iiwa/toolName" type="string" value="$(arg tool_name)" /> <!--Sunrise tool-->
+  <arg name="joint_position_topic" default="/iiwa/state/JointPosition"/>
+  <arg name="cartesian_position_topic" default="/iiwa/state/CartesianPose"/>
   
   <!--  This loads the robot description  -->
   <include file="$(find iiwa_examples)/launch/moveit_planning_example.launch">
@@ -26,6 +32,8 @@
     <param name="ros_rate" value="$(arg ros_rate)"/>
     <param name="planner_id" value="$(arg planner_id)"/>
     <param name="reference_frame" value="$(arg reference_frame)"/>
+    <param name="joint_position_topic" value="$(arg joint_position_topic)"/>
+    <param name="cartesian_position_topic" value="$(arg cartesian_position_topic)"/>
   </node>
   
 </launch>

@@ -1,4 +1,8 @@
 #include "iiwa_ros/iiwa_ros.hpp"
+#include <iiwa_ros/state/cartesian_pose.hpp>
+#include <iiwa_ros/service/control_mode.hpp>
+#include <iiwa_ros/conversions.hpp>
+
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/DisplayTrajectory.h>
@@ -12,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/Bear_Coordinates.txt"
+#define TXT_FILE "/input/Square_Coordinates.txt"
 #define BACKWARD 0.01
 
 using namespace std;
@@ -52,6 +56,11 @@ int main (int argc, char **argv) {
     
     // iiwa_ros::iiwa_ros my_iiwa;
     // my_iiwa.init();
+    iiwa_ros::state::CartesianPose iiwa_pose_state;
+    iiwa_ros::service::ControlModeService iiwa_control_mode;
+
+    iiwa_pose_state.init("iiwa");
+    iiwa_control_mode.init("iiwa");
 
     std::string movegroup_name, ee_link, planner_id, reference_frame;
     geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, start, end;
@@ -113,6 +122,10 @@ int main (int argc, char **argv) {
     
     // initialization before start drawing
     while (ros::ok() && !init){
+        ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
+        // Low stiffness only along Z.
+        iiwa_control_mode.setCartesianImpedanceMode(iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300), iiwa_ros::conversions::CartesianQuantityFromFloat(0.7));
+      
         ros::Duration(5).sleep(); // wait for 2 sec
         ROS_INFO("Sleeping 5 seconds before starting ... ");
 
