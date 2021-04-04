@@ -12,8 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_visual_tools
 )
 
-add_subdirectory(submodule/moveit_visual_tools)
-
 catkin_package()
 
 include_directories(include ${catkin_INCLUDE_DIRS})
@@ -25,3 +23,7 @@ target_link_libraries(drawing_moveit ${catkin_LIBRARIES})
 add_executable(updown_moveit src/updown_moveit.cpp)
 add_dependencies(updown_moveit iiwa_msgs_generate_messages_cpp)
 target_link_libraries(updown_moveit ${catkin_LIBRARIES})
+
+add_executable(contact_moveit src/contact_moveit.cpp)
+add_dependencies(contact_moveit iiwa_msgs_generate_messages_cpp)
+target_link_libraries(contact_moveit ${catkin_LIBRARIES})
