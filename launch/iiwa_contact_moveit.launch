@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Parameters to pass to the ROS node -->
+  <arg name="move_group" default="manipulator"/>
+  <arg name="ee_link" default="tool_link_ee"/>
+  <arg name="ros_rate" default="10.0"/>
+  <arg name="model" default="iiwa7_flange"/>
+  <arg name="sim" default="true"/>
+  <arg name="world" default="empty"/>
+
+  <arg name="planner_id" default="RRTConnectkConfigDefault"/>
+  <arg name="reference_frame" default=""/>
+
+  
+  <!--  This loads the robot description  -->
+  <include file="$(find iiwa_examples)/launch/moveit_planning_example.launch">
+    <arg name="sim" value="$(arg sim)"/>
+    <arg name="world" value="$(arg world)"/>
+    <arg name="model" value="$(arg model)"/>
+  </include>
+    
+  <!-- Here we call the ROS node we have written, with the parameters on top   -->
+  <node ns="iiwa" name="CommandRobotMoveit" pkg="iiwa_examples" type="contact_moveit" respawn="false" output="screen">
+    <param name="move_group" value="$(arg move_group)"/>
+    <param name="ee_link" value="$(arg ee_link)"/>
+    <param name="ros_rate" value="$(arg ros_rate)"/>
+    <param name="planner_id" value="$(arg planner_id)"/>
+    <param name="reference_frame" value="$(arg reference_frame)"/>
+  </node>
+  
+</launch>
