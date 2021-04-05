@@ -17,7 +17,7 @@
 #include <vector>
 
 #define TXT_FILE "/input/Square_Coordinates.txt"
-#define BACKWARD 0.01
+#define BACKWARD 0.05
 
 using namespace std;
 using moveit::planning_interface::MoveItErrorCode;
@@ -114,6 +114,9 @@ int main (int argc, char **argv) {
         cout << "FILE NOT FOUND" << endl;
         return 1;
     }
+    else {
+        cout << TXT_FILE << endl;
+    }
 
     string line;
     bool init = false;
@@ -122,9 +125,6 @@ int main (int argc, char **argv) {
     
     // initialization before start drawing
     while (ros::ok() && !init){
-        ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
-        // Low stiffness only along Z.
-        iiwa_control_mode.setCartesianImpedanceMode(iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300), iiwa_ros::conversions::CartesianQuantityFromFloat(0.7));
       
         ros::Duration(5).sleep(); // wait for 2 sec
         ROS_INFO("Sleeping 5 seconds before starting ... ");
@@ -146,13 +146,43 @@ int main (int argc, char **argv) {
         ROS_INFO("Moved to the initial position");
         ROS_INFO("Sleeping 3 seconds before starting ... ");
         ros::Duration(3).sleep(); // wait for 3 sec
-        
+
+        ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
+        // Low stiffness only along Z.
+        iiwa_control_mode.setCartesianImpedanceMode(iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300), iiwa_ros::conversions::CartesianQuantityFromFloat(0.7));
+        current_cartesian_position = move_group.getCurrentPose(ee_link);  
+        current_cartesian_position.pose.position.x += BACKWARD;
+        linear_path.push_back(current_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE FORWARD ERROR");
+
+        linear_path.clear();
+
+        ROS_INFO("Detecting the wall");
+        ROS_INFO("Sleeping 3 seconds before starting ... ");
+        ros::Duration(3).sleep(); // wait for 3 sec
+
+        // save the wall's x position
+        current_cartesian_position = move_group.getCurrentPose(ee_link);   
+        x = current_cartesian_position.pose.position.x;// - 0.045; // default x position
+
+        // move backward
+        current_cartesian_position.pose.position.x -= BACKWARD;
+        linear_path.push_back(current_cartesian_position.pose);
+        fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+        my_plan.trajectory_ = trajectory;
+        move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+        if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
+
+        linear_path.clear();        
+
+
         init = true;
         current_cartesian_position = move_group.getCurrentPose(ee_link);   
         command_cartesian_position = current_cartesian_position;
         drawing_point = current_cartesian_position.pose;
-
-        x = current_cartesian_position.pose.position.x - 0.045; // default x position
 
         // linear_path.push_back(current_cartesian_position.pose);
     }
@@ -162,13 +192,17 @@ int main (int argc, char **argv) {
     while(ros::ok() && getline(txt, line) && init){
         if(line == "End"){
             stroke_num++;
+            ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
+            // Low stiffness only along Z.
+            iiwa_control_mode.setCartesianImpedanceMode(iiwa_ros::conversions::CartesianQuantityFromFloat(1500,1500,350,300,300,300), iiwa_ros::conversions::CartesianQuantityFromFloat(0.7));
+
             // move forward first to draw
             ROS_INFO("Moving Forward ... ");
             command_cartesian_position.pose = drawing_stroke[0];
             linear_path.push_back(command_cartesian_position.pose);
             fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
             my_plan.trajectory_ = trajectory;
-            move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+            move_group.execute(my_plan);  ros::Duration(0.1).sleep();
             if (fraction < 0.5) ROS_WARN_STREAM("MOVE FORWARD ERROR");
 
             linear_path.clear();
@@ -181,7 +215,7 @@ int main (int argc, char **argv) {
             ROS_INFO("Visualizing drawing plan (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
             if (fraction < 0.5) ROS_WARN_STREAM("LINE DRAWING ERROR");
             
-            motion_done = move_group.execute(my_plan); //ros::Duration(0.1).sleep();
+            motion_done = move_group.execute(my_plan); ros::Duration(0.1).sleep();
             if (sim == true){   // Rviz drawing visualization
                 if (motion_done == MoveItErrorCode::SUCCESS){
                     visual_tools.publishTrajectoryLine(my_plan.trajectory_, link_model, joint_model_group, rviz_visual_tools::colors::WHITE);                   
@@ -197,10 +231,13 @@ int main (int argc, char **argv) {
             // getCurrentPose ignores the reference frame, thus get the latest position from drawing_stroke
             ROS_INFO("Moving Backward ... \n");
             command_cartesian_position.pose = drawing_stroke.back();
+            ROS_INFO("The robot will be now set in Cartesian Position Control Mode");
+            // Low stiffness only along Z.
+            iiwa_control_mode.setPositionControlMode();
 
             // move backward
             // linear_path.push_back(command_cartesian_position.pose);
-            command_cartesian_position.pose.position.x -= BACKWARD;
+            command_cartesian_position.pose.position.x = x - BACKWARD;
             linear_path.push_back(command_cartesian_position.pose);
             fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory); // loosen the eef_step as moving backward does not need precision
             my_plan.trajectory_ = trajectory;
@@ -218,10 +255,11 @@ int main (int argc, char **argv) {
             // read drawing
             vector<string> tempSplit = split(line, ' ');
             y = stod(tempSplit[0]);
-            z = stod(tempSplit[1])+0.1;
+            z = stod(tempSplit[1])-0.1;//+0.1;
 
             if (!ready_to_draw){
                 // move to the ready position (off the wall)
+                iiwa_control_mode.setPositionControlMode();
                 ROS_INFO("Moving To Ready Position ... ");
                 command_cartesian_position.pose.position.x = x - BACKWARD;
                 command_cartesian_position.pose.position.y = y;
