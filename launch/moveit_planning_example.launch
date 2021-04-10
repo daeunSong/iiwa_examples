@@ -16,6 +16,7 @@
     <arg name="trajectory" default="true" />
     <arg name="world" default="iiwa_drawing" />
     <arg name="rviz_config" default="moveit_drawing.rviz" />
+    <arg name="pipeline" default="ompl"/>
     
     <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
            to="/$(arg robot_name)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
@@ -60,6 +61,7 @@
             <arg name="hardware_interface" value="$(arg hardware_interface)"/>
             <arg name="robot_name" value="$(arg robot_name)"/>
             <arg name="model" value="$(arg model)" />
+            <arg name="pipeline" value="$(arg pipeline)" />
         </include>
 
         <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">

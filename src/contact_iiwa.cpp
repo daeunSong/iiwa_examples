@@ -35,8 +35,10 @@
 #include <string>
 #include <vector>
 
-#include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
+#include <iiwa_ros/state/cartesian_pose.hpp>
+#include <iiwa_ros/state/joint_position.hpp>
+#include <iiwa_ros/command/cartesian_pose.hpp>
+#include <iiwa_ros/command/joint_position.hpp>
 
 #define FILE_NAME "/home/daeun/ros_ws/contact/src/iiwa_examples/config/contact_solution_path.txt"
 #define FILE_NAME_ "/home/daeun/ros_ws/contact/src/iiwa_examples/config/contact_solution_path_save.txt"
@@ -102,7 +104,7 @@ void solve(){
     base::ScopedState<base::SE3StateSpace> goal(start);
     goal->setX(0.31);
     goal->setY(0);
-    goal->setZ(-1.0);
+    goal->setZ(-1.2);
     goal->rotation().x= 0;
     goal->rotation().y= -0.7071067811865475;
     goal->rotation().z= 0;
@@ -134,7 +136,7 @@ void solve(){
     if (setup.solve(10))
     {
         // simplify & print the solution
-        // setup.simplifySolution();
+        setup.simplifySolution();
         std::ofstream fout;  
         fout.open(FILE_NAME); // save path as a file
         setup.getSolutionPath().printAsMatrix(fout);
@@ -151,7 +153,7 @@ std::vector<geometry_msgs::Pose> transform_path(geometry_msgs::Pose init_pose_){
     std::vector<geometry_msgs::Pose> transformed_path;
 
     // read a saved path
-    std::ifstream f (FILE_NAME_); 
+    std::ifstream f (FILE_NAME); 
     if(!f.is_open()){
         std::cout << "FILE NOT FOUND" << std::endl;
     }
@@ -213,7 +215,19 @@ int main (int argc, char **argv) {
     // Initialize ROS
     ros::init(argc, argv, "CommandRobotMoveit");
     ros::NodeHandle nh("~");
-    nh.param("sim", sim, true);
+    nh.param("sim", sim, false);
+
+    iiwa_ros::state::CartesianPose iiwa_pose_state;
+    iiwa_ros::state::JointPosition iiwa_joint_state;
+    iiwa_ros::command::CartesianPose iiwa_pose_command;
+    iiwa_ros::command::JointPosition iiwa_joint_command;
+    iiwa_ros::service::TimeToDestinationService iiwa_time_destination;
+
+    iiwa_pose_state.init("iiwa");
+    iiwa_pose_command.init("iiwa");
+    iiwa_joint_state.init("iiwa");
+    iiwa_joint_command.init("iiwa");
+    iiwa_time_destination.init("iiwa");
 
     // ROS spinner.
     ros::AsyncSpinner spinner(1);
@@ -250,16 +264,11 @@ int main (int argc, char **argv) {
       move_group.getCurrentState()->getLinkModel(ee_link);
 
     // Configure Move Group
-    move_group.setPlanningTime(10);
+    move_group.setPlanningTime(0.5);
     //move_group.setPlannerId(PLANNING_GROUP+"[RRTConnectkConfigDefault]");
-    move_group.setPlannerId(planner_id);  
-    // move_group.setPlannerId("TRRTkConfigDefault");  
-    // move_group.setPlannerId("LIN");  
-    
+    move_group.setPlannerId(PLANNER_ID);  
     move_group.setEndEffectorLink(ee_link);
     move_group.setPoseReferenceFrame(reference_frame);
-    move_group.setMaxVelocityScalingFactor(0.1);
-    move_group.setMaxAccelerationScalingFactor(0.1);
     //ROS_INFO("Planner ID: %s", move_group.getPlannerId().c_str());
     ROS_INFO("Planning frame: %s", move_group.getPlanningFrame().c_str());
     ROS_INFO("End effector link: %s", move_group.getEndEffectorLink().c_str());
@@ -309,224 +318,42 @@ int main (int argc, char **argv) {
     mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
 
     MoveItErrorCode success_plan = MoveItErrorCode::FAILURE, motion_done = MoveItErrorCode::FAILURE;
-
-    // // read a saved path
-    // std::ifstream f (FILE_NAME); 
-    // if(!f.is_open()){
-    //     std::cout << "FILE NOT FOUND" << std::endl;
-    //     return 1;
-    // }
-    // std::string line;
-
-    // std::vector<geometry_msgs::Pose> linear_path;
-    // while (getline(f, line)){
-    //     if (line.empty()) break;
-
-    //     std::vector<std::string> pose = split(line, ' ');
-    //     geometry_msgs::Pose waypoint = move_group.getCurrentPose(ee_link).pose; 
-    //     waypoint.position.x = std::stod(pose[0]);
-    //     waypoint.position.y = std::stod(pose[1]);
-    //     waypoint.position.z = std::stod(pose[2]);
-    //     waypoint.orientation.x = std::stod(pose[3]);
-    //     waypoint.orientation.y = std::stod(pose[4]);
-    //     waypoint.orientation.z = std::stod(pose[5]);
-    //     waypoint.orientation.w = std::stod(pose[6]);
-    //     linear_path.push_back(waypoint);
-    //     // visual_tools.publishAxisLabeled(waypoint, "waypoint");
-    // }
-
     double fraction;
-
-    ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/iiwa/joint_states", 1);
     
     while (ros::ok()){
         ros::Duration(5).sleep(); // wait for 2 sec
         ROS_INFO("Sleeping 5 seconds before starting ... ");
 
-        // set all the joint values to the init joint position
-        move_group.setStartStateToCurrentState();
-        move_group.setJointValueTarget("iiwa_joint_1", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_2", 1.0472); //60
-        move_group.setJointValueTarget("iiwa_joint_3", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_4", -1.0472); //-60
-        move_group.setJointValueTarget("iiwa_joint_5", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_6", 1.0472);  //60
-        move_group.setJointValueTarget("iiwa_joint_7", 0.0);
-        success_plan = move_group.plan(my_plan);
-        if (success_plan == MoveItErrorCode::SUCCESS) {
-            motion_done = move_group.execute(my_plan);
-            ROS_INFO("Moved to the initial position");   
-        } 
+        iiwa_msgs::JointPosition command_joint_position;
+        iiwa_msgs::CartesianPose command_cartesian_position;
+
+        command_joint_position = iiwa_joint_state.getPosition();
+        command_joint_position.position.a1 = 0.0;
+        command_joint_position.position.a2 = 0.872665;
+        command_joint_position.position.a3 = 0.0;
+        command_joint_position.position.a4 = -1.13446;
+        command_joint_position.position.a5 = 0.0;
+        command_joint_position.position.a6 = 1.13446;
+        command_joint_position.position.a7 = 0.0;
+        iiwa_joint_command.setPosition(command_joint_position);
+
 
         ros::Duration(5).sleep(); // wait for 5 sec
+        command_cartesian_position = iiwa_pose_state.getPose();
         ROS_INFO("Sleeping 5 seconds before starting ... ");
-        current_cartesian_position = move_group.getCurrentPose(ee_link);   
-        // std::vector<double> joint_values;
-        // kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
-
-        //Define a pose for your mesh (specified relative to frame_id)
-        geometry_msgs::Pose obj_pose;
-        obj_pose.position = current_cartesian_position.pose.position;
-        obj_pose.position.x += 0.0155;
-        obj_pose.position.z += 0.0275;
-        obj_pose.orientation.y = 1;
-
-        // move_group.setPlannerId("LIN");  
-
-        // // Add the mesh to the Collision object message 
-        // collision_object.meshes.push_back(mesh);
-        // collision_object.mesh_poses.push_back(obj_pose);
-        // collision_object.operation = collision_object.ADD;
-
-        // // ROS_WARN_STREAM("OBSTACLE POSE:");
-        // // ROS_WARN_STREAM(obj_pose);
-        
-        // // publish the collision object        
-        // std::vector<moveit_msgs::CollisionObject> collision_objects;
-        // collision_objects.push_back(collision_object);
-        // planning_scene_interface.applyCollisionObjects(collision_objects);
-
-        // move_group.setStartStateToCurrentState();
-        // target_cartesian_position = current_cartesian_position;
-        // target_cartesian_position.pose.position.z= 0.36209;
-        // target_cartesian_position.pose.orientation.x= 0.0;
-        // target_cartesian_position.pose.orientation.y= 0.707107;
-        // target_cartesian_position.pose.orientation.z= 0.0;
-        // target_cartesian_position.pose.orientation.w= 0.707107;
-
-        // move_group.setPlannerId("LIN");  
 
         std::vector<geometry_msgs::Pose> linear_path;
-        linear_path = transform_path(current_cartesian_position.pose);
-        target_cartesian_position.pose = linear_path.back();
-        
-        // move_group.setStartStateToCurrentState();
-        // moveit_msgs::Constraints pose_goal =
-        //     kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
-        // move_group.setPoseTarget(target_cartesian_position);
+        linear_path = transform_path(command_cartesian_position.poseStamped.pose);
 
-        // visualize the start and goal pose
-        // visual_tools.deleteAllMarkers();
-        visual_tools.publishAxisLabeled(current_cartesian_position.pose, "start");
-        visual_tools.publishAxisLabeled(target_cartesian_position.pose, "goal");
-        for (int i = 0; i < linear_path.size(); i++){
-            visual_tools.publishAxisLabeled(linear_path[i], "");
-        }
-        visual_tools.trigger();
-        ros::Duration(5).sleep(); // wait for 5 sec
-        ROS_INFO("Sleeping 5 seconds before starting ... ");
-
-
-        // // Inverse Kinematics
-        // // ^^^^^^^^^^^^^^^^^^
-        // // We can now solve inverse kinematics (IK) for the Panda robot.
-        // // To solve IK, we will need the following:
-        // //
-        // //  * The desired pose of the end-effector (by default, this is the last link in the "panda_arm" chain):
-        // //    end_effector_state that we computed in the step above.
-        // //  * The timeout: 0.1 s
-        // double timeout = 0.1;
-
-        // for (int i = 0; i < linear_path.size(); i ++)
-        // {
-        //     bool found_ik = kinematic_state->setFromIK(joint_model_group, linear_path[i], timeout);
-
-        //     // Now, we can print out the IK solution (if found):
-        //     if (found_ik)
-        //     {
-        //         kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
-        //         for (int j = 0; j < joint_names.size(); j++)
-        //         {
-        //             move_group.setJointValueTarget(joint_names[j].c_str(), joint_values[j]);
-        //         }
-        //         success_plan = move_group.plan(my_plan);
-        //         if (success_plan == MoveItErrorCode::SUCCESS) {
-        //             motion_done = move_group.execute(my_plan);
-        //             ROS_INFO("Moved to %d th way point",i);   
-        //         } 
-        //         else
-        //             ROS_WARN_STREAM("Execution failed");
-        //     }
-        //     else
-        //         ROS_WARN_STREAM("Did not find IK solution");
-        // }
-
-
-        move_group.setStartStateToCurrentState();
-        move_group.setPlanningTime(10.0);
-        target_cartesian_position.header.frame_id=REFERENCE_FRAME;
-
-        for (int i = 0; i < linear_path.size(); i++){
-            move_group.setStartStateToCurrentState();
-            target_cartesian_position.pose = linear_path[i];
-            moveit_msgs::Constraints pose_goal =
-                kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
-            move_group.setPoseTarget(target_cartesian_position);
-            
-            success_plan = move_group.plan(my_plan);
-            if (success_plan == MoveItErrorCode::SUCCESS) {
-                motion_done = move_group.execute(my_plan);    
-                ROS_INFO("Moved to %d th way point",i);   
-            }
-            else {
-                ROS_WARN_STREAM("Execution failed");
-            }
-            ros::Duration(0.1).sleep();
-        }
-
-        ros::Duration(3).sleep();
-        
-        move_group.setJointValueTarget("iiwa_joint_1", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_2", 1.0472); //60
-        move_group.setJointValueTarget("iiwa_joint_3", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_4", -1.0472); //-60
-        move_group.setJointValueTarget("iiwa_joint_5", 0.0);
-        move_group.setJointValueTarget("iiwa_joint_6", 1.0472);  //60
-        move_group.setJointValueTarget("iiwa_joint_7", 0.0);
-        success_plan = move_group.plan(my_plan);
-        if (success_plan == MoveItErrorCode::SUCCESS) {
-            motion_done = move_group.execute(my_plan);
-            ROS_INFO("Moved to the initial position");   
-        } 
-
-        // Add the mesh to the Collision object message 
-        collision_object.meshes.push_back(mesh);
-        collision_object.mesh_poses.push_back(obj_pose);
-        collision_object.operation = collision_object.ADD;
-
-        // ROS_WARN_STREAM("OBSTACLE POSE:");
-        // ROS_WARN_STREAM(obj_pose);
-        
-        // publish the collision object        
-        std::vector<moveit_msgs::CollisionObject> collision_objects;
-        collision_objects.push_back(collision_object);
-        planning_scene_interface.applyCollisionObjects(collision_objects);
-        ros::Duration(1).sleep();
-
-        move_group.setStartStateToCurrentState();
-        move_group.setPlanningTime(10.0);
-        target_cartesian_position.header.frame_id=REFERENCE_FRAME;
-
-        for (int i = 0; i < linear_path.size(); i++){
-            move_group.setStartStateToCurrentState();
-            target_cartesian_position.pose = linear_path[i];
-            moveit_msgs::Constraints pose_goal =
-                kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
-            move_group.setPoseTarget(target_cartesian_position);
-            
-            success_plan = move_group.plan(my_plan);
-            if (success_plan == MoveItErrorCode::SUCCESS) {
-                motion_done = move_group.execute(my_plan);    
-                ROS_INFO("Moved to %d th way point",i);   
-            }
-            else {
-                ROS_WARN_STREAM("Execution failed");
-            }
-            ros::Duration(0.1).sleep();
+        for (int i = 0; i < linear_path.size(); i++)
+        {
+            command_cartesian_position.poseStamped.pose= linear_path[i];
+            iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+            ros::Duration(0.5).sleep(); // wait for 5 sec
         }
 
 
-        // // MOTION PLANNING
+        // MOTION PLANNING
         // fraction = 0.0;
         // while (fraction < 0.8){
         //     fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory, true);
@@ -551,7 +378,7 @@ int main (int argc, char **argv) {
         // planning_scene_interface.applyCollisionObjects(collision_objects);
 
         // start planning
-        // move_group.setPlanningTime(60.0);
+        // move_group.setPlanningTime(6000.0);
         // success_plan = move_group.plan(my_plan);
         // if (success_plan == MoveItErrorCode::SUCCESS) {
         //     motion_done = move_group.execute(my_plan);    

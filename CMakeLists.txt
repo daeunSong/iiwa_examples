@@ -24,6 +24,9 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package()
 
 #find_package(ompl)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+add_definitions(${EIGEN_DEFINITIONS})
 
 set(OMPL_INCLUDE_DIRS /usr/local/include/ompl-1.5)
 set(OMPL_LIBRARIES /home/daeun/devel/omplapp-1.5.2-Source/build/Release/lib/libompl.so)
@@ -44,9 +47,13 @@ add_executable(updown_moveit src/updown_moveit.cpp)
 add_dependencies(updown_moveit iiwa_msgs_generate_messages_cpp)
 target_link_libraries(updown_moveit ${catkin_LIBRARIES})
 
+add_executable(contact_iiwa src/contact_iiwa.cpp)
+add_dependencies(contact_iiwa iiwa_msgs_generate_messages_cpp)
+target_link_libraries(contact_iiwa ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES})
+
 add_executable(contact_moveit src/contact_moveit.cpp)
 add_dependencies(contact_moveit iiwa_msgs_generate_messages_cpp)
-target_link_libraries(contact_moveit ${catkin_LIBRARIES})
+target_link_libraries(contact_moveit ${catkin_LIBRARIES} ${OMPL_LIBRARIES} ${OMPLAPP_LIBRARIES})
 
 add_executable(ompl_planning src/ompl_planning.cpp)
 add_dependencies(ompl_planning iiwa_msgs_generate_messages_cpp)

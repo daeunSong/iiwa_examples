@@ -7,9 +7,10 @@
   <arg name="model" default="iiwa7_flange"/>
   <arg name="sim" default="true"/>
   <arg name="world" default="empty"/>
+  <arg name="pipeline" default="ompl"/>
 
-  <arg name="planner_id" default="RRTConnectkConfigDefault"/>
-  <arg name="reference_frame" default=""/>
+  <arg name="planner_id" default="TRRTkConfigDefault"/>
+  <arg name="reference_frame" default="world"/>
 
   
   <!--  This loads the robot description  -->
@@ -17,6 +18,7 @@
     <arg name="sim" value="$(arg sim)"/>
     <arg name="world" value="$(arg world)"/>
     <arg name="model" value="$(arg model)"/>
+    <arg name="pipeline" value="$(arg pipeline)" />
   </include>
     
   <!-- Here we call the ROS node we have written, with the parameters on top   -->
