@@ -134,7 +134,7 @@ void solve(){
     if (setup.solve(10))
     {
         // simplify & print the solution
-        // setup.simplifySolution();
+        setup.simplifySolution();
         std::ofstream fout;  
         fout.open(FILE_NAME); // save path as a file
         setup.getSolutionPath().printAsMatrix(fout);
@@ -240,10 +240,10 @@ int main (int argc, char **argv) {
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     moveit::planning_interface::MoveGroupInterface::Plan my_plan;
     moveit_msgs::RobotTrajectory trajectory;
-    const double jump_threshold = 0.01; // 0.0
+    const double jump_threshold = 0.1; // 0.0
     const double eef_step = 0.001; // 0.001
-    const std::vector<double> tolerance_pose(3, 0.00001);
-    const std::vector<double> tolerance_angle(3, 0.00001);
+    const std::vector<double> tolerance_pose(3, 0.001);
+    const std::vector<double> tolerance_angle(3, 0.001);
     const robot_state::JointModelGroup* joint_model_group =
       move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
     const moveit::core::LinkModel* link_model =
@@ -358,11 +358,32 @@ int main (int argc, char **argv) {
             ROS_INFO("Moved to the initial position");   
         } 
 
-        ros::Duration(5).sleep(); // wait for 5 sec
-        ROS_INFO("Sleeping 5 seconds before starting ... ");
         current_cartesian_position = move_group.getCurrentPose(ee_link);   
         // std::vector<double> joint_values;
         // kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
+
+        move_group.setStartStateToCurrentState();
+        target_cartesian_position = current_cartesian_position;
+        target_cartesian_position.header.frame_id=REFERENCE_FRAME;
+        target_cartesian_position.pose.position.x += 0.01;
+        target_cartesian_position.pose.position.z -= 0.01;
+        // moveit_msgs::Constraints pose_goal =
+        //     kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
+        move_group.setPoseTarget(target_cartesian_position,ee_link);
+        // move_group.setApproximateJointValueTarget(target_cartesian_position,ee_link);
+        
+        success_plan = move_group.plan(my_plan);
+        if (success_plan == MoveItErrorCode::SUCCESS) {
+            motion_done = move_group.execute(my_plan);    
+            ROS_INFO("Move the initial pose");   
+        }
+        else {
+            ROS_WARN_STREAM("Execution failed");
+        }
+          
+        ros::Duration(5).sleep(); // wait for 5 sec
+        ROS_INFO("Sleeping 5 seconds before starting ... ");
+        current_cartesian_position = move_group.getCurrentPose(ee_link); 
 
         //Define a pose for your mesh (specified relative to frame_id)
         geometry_msgs::Pose obj_pose;
@@ -409,7 +430,7 @@ int main (int argc, char **argv) {
         // visual_tools.deleteAllMarkers();
         visual_tools.publishAxisLabeled(current_cartesian_position.pose, "start");
         visual_tools.publishAxisLabeled(target_cartesian_position.pose, "goal");
-        for (int i = 0; i < linear_path.size(); i++){
+        for (int i = 0; i < linear_path.size(); i+=2){
             visual_tools.publishAxisLabeled(linear_path[i], "");
         }
         visual_tools.trigger();
@@ -456,12 +477,15 @@ int main (int argc, char **argv) {
         move_group.setPlanningTime(10.0);
         target_cartesian_position.header.frame_id=REFERENCE_FRAME;
 
-        for (int i = 0; i < linear_path.size(); i++){
+        std::vector<std::vector<double>> joint_states;
+
+        for (int i = 0; i < linear_path.size(); i+=2){
             move_group.setStartStateToCurrentState();
             target_cartesian_position.pose = linear_path[i];
-            moveit_msgs::Constraints pose_goal =
-                kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
-            move_group.setPoseTarget(target_cartesian_position);
+            // moveit_msgs::Constraints pose_goal =
+            //     kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
+            move_group.setPoseTarget(target_cartesian_position,ee_link);
+            // move_group.setApproximateJointValueTarget(target_cartesian_position,ee_link);
             
             success_plan = move_group.plan(my_plan);
             if (success_plan == MoveItErrorCode::SUCCESS) {
@@ -471,7 +495,8 @@ int main (int argc, char **argv) {
             else {
                 ROS_WARN_STREAM("Execution failed");
             }
-            ros::Duration(0.1).sleep();
+            // ros::Duration(0.1).sleep();
+            joint_states.push_back(move_group.getCurrentJointValues());
         }
 
         ros::Duration(3).sleep();
@@ -488,6 +513,28 @@ int main (int argc, char **argv) {
             motion_done = move_group.execute(my_plan);
             ROS_INFO("Moved to the initial position");   
         } 
+        current_cartesian_position = move_group.getCurrentPose(ee_link);   
+        // std::vector<double> joint_values;
+        // kinematic_state->copyJointGroupPositions(joint_model_group, joint_values);
+
+        move_group.setStartStateToCurrentState();
+        target_cartesian_position = current_cartesian_position;
+        target_cartesian_position.header.frame_id=REFERENCE_FRAME;
+        target_cartesian_position.pose.position.x += 0.01;
+        target_cartesian_position.pose.position.z -= 0.01;
+        // moveit_msgs::Constraints pose_goal =
+        //     kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
+        move_group.setPoseTarget(target_cartesian_position,ee_link);
+        // move_group.setApproximateJointValueTarget(target_cartesian_position,ee_link);
+        
+        success_plan = move_group.plan(my_plan);
+        if (success_plan == MoveItErrorCode::SUCCESS) {
+            motion_done = move_group.execute(my_plan);    
+            ROS_INFO("Move the initial pose");   
+        }
+        else {
+            ROS_WARN_STREAM("Execution failed");
+        }
 
         // Add the mesh to the Collision object message 
         collision_object.meshes.push_back(mesh);
@@ -503,32 +550,41 @@ int main (int argc, char **argv) {
         planning_scene_interface.applyCollisionObjects(collision_objects);
         ros::Duration(1).sleep();
 
-        move_group.setStartStateToCurrentState();
-        move_group.setPlanningTime(10.0);
-        target_cartesian_position.header.frame_id=REFERENCE_FRAME;
-
-        for (int i = 0; i < linear_path.size(); i++){
-            move_group.setStartStateToCurrentState();
-            target_cartesian_position.pose = linear_path[i];
-            moveit_msgs::Constraints pose_goal =
-                kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
-            move_group.setPoseTarget(target_cartesian_position);
+        move_group.setPlanningTime(60.0);
+        // for (int i = 0; i < linear_path.size(); i+=2){
+        //     move_group.setStartStateToCurrentState();
+        //     target_cartesian_position.pose = linear_path[i];
+        //     // moveit_msgs::Constraints pose_goal =
+        //     //     kinematic_constraints::constructGoalConstraints(ee_link, target_cartesian_position, tolerance_pose, tolerance_angle);
+        //     move_group.setPoseTarget(target_cartesian_position,ee_link);
             
+        //     success_plan = move_group.plan(my_plan);
+        //     if (success_plan == MoveItErrorCode::SUCCESS) {
+        //         motion_done = move_group.execute(my_plan);    
+        //         ROS_INFO("Moved to %d th way point",i);   
+        //     }
+        //     else {
+        //         ROS_WARN_STREAM("Execution failed");
+        //     }
+        // }
+
+        for (int i = 0; i < joint_states.size(); i++)
+        {
+            for (int j = 0; j < joint_names.size(); j++)
+            {
+                move_group.setJointValueTarget(joint_names[j].c_str(), joint_states[i][j]);
+            }
             success_plan = move_group.plan(my_plan);
             if (success_plan == MoveItErrorCode::SUCCESS) {
-                motion_done = move_group.execute(my_plan);    
+                motion_done = move_group.execute(my_plan);
                 ROS_INFO("Moved to %d th way point",i);   
-            }
-            else {
-                ROS_WARN_STREAM("Execution failed");
-            }
-            ros::Duration(0.1).sleep();
+            } 
         }
 
-
         // // MOTION PLANNING
+        // move_group.setPlanningTime(60.0);
         // fraction = 0.0;
-        // while (fraction < 0.8){
+        // while (fraction < 1.0){
         //     fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory, true);
         //     my_plan.trajectory_ = trajectory;
             
