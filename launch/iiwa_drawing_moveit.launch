@@ -3,7 +3,7 @@
   <!-- Parameters to pass to the ROS node -->
   <arg name="move_group" default="manipulator"/>
   <arg name="ee_link" default="iiwa_link_ee"/>
-  <arg name="ros_rate" default="10.0"/>
+  <arg name="ros_rate" default="0.1"/>
   <arg name="model" default="iiwa7"/>
   <arg name="sim" default="true"/>
   <arg name="world" default="iiwa_drawing"/>
