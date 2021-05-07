@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/Square_Coordinates2.txt"
+#define TXT_FILE "/input/Bear_Coordinates2.txt"
 #define BACKWARD 0.05
 #define TRANSLATE_UP 0.52
 
@@ -45,6 +45,42 @@ vector<string> split(string input, char delimiter){
     return ans;
 }
 
+vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
+    vector<double> normal;
+    vector<double> P1, P2;
+    
+    // get 2 vectors from 3 points
+    P1.push_back(P[0].position.x - P[1].position.x);
+    P1.push_back(P[0].position.y - P[1].position.y);
+    P1.push_back(P[0].position.z - P[1].position.z);
+    P2.push_back(P[0].position.x - P[2].position.x);
+    P2.push_back(P[0].position.y - P[2].position.y);
+    P2.push_back(P[0].position.z - P[2].position.z);
+
+    cout << "P1: " << P1[0] << " " << P1[1] << " " << P1[2] << endl;
+    cout << "P2: " << P2[0] << " " << P2[1] << " " << P2[2] << endl << endl;
+
+    // calculate normal vector
+    normal.push_back(P1[1]*P2[2] - P1[2]*P2[1]);
+    normal.push_back(P1[2]*P2[0] - P1[0]*P2[2]);
+    normal.push_back(P1[0]*P2[1] - P1[1]*P2[0]);
+
+    // make x of normal vector as 1
+    normal[1] = normal[1]/normal[0];
+    normal[2] = normal[2]/normal[0];
+    normal[0] = 1;
+
+    cout << "DIFF: " << P[0].position.x << " " << P[0].position.y << " " << P[0].position.z << endl;
+
+    // find d (x + y + z + d = 0)
+    double d = -1*P[0].position.x - normal[1]*P[0].position.y - normal[2]*P[0].position.z;
+    normal.push_back(d);
+
+    cout << endl << "NORMAL: " << normal[0] << " " << normal[1] << " " << normal[2] << " " << normal[3] << " " << endl << endl;
+
+    return normal;
+}
+
 int main (int argc, char **argv) {
     // Initialize ROS
     ros::init(argc, argv, "CommandRobotMoveit");
@@ -70,7 +106,7 @@ int main (int argc, char **argv) {
     }
 
     std::string movegroup_name, ee_link, planner_id, reference_frame;
-    geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, start, end;
+    geometry_msgs::PoseStamped current_cartesian_position, command_cartesian_position, start, end, init_cartesian_position;
     std::string joint_position_topic, cartesian_position_topic;
     std::vector<geometry_msgs::Pose> drawing_stroke;
     std::vector<geometry_msgs::Pose> linear_path;
@@ -113,7 +149,6 @@ int main (int argc, char **argv) {
         visual_tools.trigger();
     }
     
-
     // TXT file with list of coordinates
     ifstream txt(ros::package::getPath("iiwa_examples")+TXT_FILE);
     // check if text file is well opened
@@ -125,6 +160,7 @@ int main (int argc, char **argv) {
     string line;
     bool init = false;
     double x, y, z, fraction;
+    vector<double> normal;
     MoveItErrorCode success_plan = MoveItErrorCode::FAILURE, motion_done = MoveItErrorCode::FAILURE;
     
     // initialization before start drawing
@@ -132,6 +168,7 @@ int main (int argc, char **argv) {
         ros::Duration(5).sleep(); // wait for 2 sec
         ROS_INFO("Sleeping 5 seconds before starting ... ");
 
+        // move to init pose
         // set all the joint values to the init joint position
         move_group.setStartStateToCurrentState();
         move_group.setJointValueTarget("iiwa_joint_1", 0.0);
@@ -147,14 +184,26 @@ int main (int argc, char **argv) {
             
         }
         ROS_INFO("Moved to the initial position");
-        ROS_INFO("Sleeping 3 seconds before starting ... ");
         ros::Duration(3).sleep(); // wait for 3 sec
 
+        
+        ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
+        iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
+        current_cartesian_position = move_group.getCurrentPose(ee_link);  
+
+        init_cartesian_position = command_cartesian_position = current_cartesian_position; // save init position
+        drawing_point = current_cartesian_position.pose;      // save end-effector orientation
+
+        // FINDING NORMAL VECTOR TO TRANLSATE INPUT DATA
         // find distance between wall and set as x-value
-        if(!sim){
-            ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
-            iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
-            current_cartesian_position = move_group.getCurrentPose(ee_link);  
+        vector<geometry_msgs::Pose> P;
+        int direction = -1;
+
+        x = current_cartesian_position.pose.position.x + 0.03;
+
+        /*
+        for(int i = 0; i < 3; i++){
+            current_cartesian_position = move_group.getCurrentPose(ee_link);
             current_cartesian_position.pose.position.x += BACKWARD;
             linear_path.push_back(current_cartesian_position.pose);
             fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
@@ -170,42 +219,69 @@ int main (int argc, char **argv) {
 
             // save the wall's x position
             current_cartesian_position = move_group.getCurrentPose(ee_link);   
-            x = current_cartesian_position.pose.position.x;  // default x position
+            P.push_back(current_cartesian_position.pose);  // default x position
 
             // move backward
-            current_cartesian_position.pose.position.x -= BACKWARD;
+            current_cartesian_position.pose.position.x -= 0.01;
             linear_path.push_back(current_cartesian_position.pose);
             fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
             my_plan.trajectory_ = trajectory;
             move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
             if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR");
 
-            linear_path.clear();        
-        }
-        else{
-            current_cartesian_position = move_group.getCurrentPose(ee_link);   
-            command_cartesian_position = current_cartesian_position;
+            linear_path.clear();    
+            ros::Duration(2).sleep(); // wait for 2 sec
 
-            x = current_cartesian_position.pose.position.x - 0.045; // default x position
+            // move diagonal
+            current_cartesian_position = init_cartesian_position;
+            current_cartesian_position.pose.position.y -= 0.05;
+            current_cartesian_position.pose.position.z += direction*0.02;
+            linear_path.push_back(current_cartesian_position.pose);
+            fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+            my_plan.trajectory_ = trajectory;
+            move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+            if (fraction < 0.5) ROS_WARN_STREAM("MOVE BACKWARD ERROR"); 
+
+            direction *= -1;
         }
+        */
+
+        //sample for simulation
+        current_cartesian_position.pose.position.x += 0.02;
+        P.push_back(current_cartesian_position.pose);
+        current_cartesian_position.pose.position.z += 0.04;
+        P.push_back(current_cartesian_position.pose);
+        current_cartesian_position.pose.position.x += 0.007;
+        current_cartesian_position.pose.position.y += 0.04;
+        current_cartesian_position.pose.position.z -= 0.04;
+        P.push_back(current_cartesian_position.pose);
+
+        cout << "IIWA_POSITION: " << init_cartesian_position.pose.position.x << " " << init_cartesian_position.pose.position.y << " " << init_cartesian_position.pose.position.z << endl;
+
+        normal = calculateNormal(P);
 
         init = true;
-        current_cartesian_position = move_group.getCurrentPose(ee_link);   
-        command_cartesian_position = current_cartesian_position;
-        drawing_point = current_cartesian_position.pose;
-
-        // linear_path.push_back(current_cartesian_position.pose);
     }
+    
+    cout << "TESTING: " << sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << " " << normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << endl;
+    double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
+    //if(sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) < 1) ang = 0;
+    double y_formula;  // save b from y = az + b as a is 0 
+                       // a = -1*normal[2]/normal[1];
+    y_formula = -1*(normal[3])/normal[1];
+
+    cout << endl << "Y_FORMULA: " <<  y_formula << "ang: " << ang << endl << endl;
 
     int stroke_num = 0;
     bool ready_to_draw = false;
+
     while(ros::ok() && getline(txt, line) && init){
         if(line == "End"){
             stroke_num++;
-            if(!sim){
-                ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
-                iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
-            }
+
+            ROS_INFO("The robot will be now set in Cartesian Impedance Mode");
+            iiwa_control_mode.setCartesianImpedanceMode(cartesian_stiffness, cartesian_damping);
+            
             // move forward first to draw
             ROS_INFO("Moving Forward ... ");
             command_cartesian_position.pose = drawing_stroke[0];
@@ -264,17 +340,26 @@ int main (int argc, char **argv) {
             y = stod(tempSplit[0]);
             z = stod(tempSplit[1])+TRANSLATE_UP;
 
+            if(ang != 0){ // if ridgeback is not parallel to the wall
+                double radius = abs(y_formula - y);
+                // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
+                x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
+                y = radius * cos(ang) + y_formula;
+            }            
+
+            /* make scale smaller
+            y = 0.8*y;
+            z = 0.8*z; */
+
             if (!ready_to_draw){
                 // move to the ready position (off the wall)
-                if(!sim){
-                    ROS_INFO("The robot will be now set in Position Control Mode");
-                    iiwa_control_mode.setPositionControlMode();
-                }
+                ROS_INFO("The robot will be now set in Position Control Mode");
+                iiwa_control_mode.setPositionControlMode();
+                
                 ROS_INFO("Moving To Ready Position ... ");
                 command_cartesian_position.pose.position.x = x - BACKWARD;
                 command_cartesian_position.pose.position.y = y;
                 command_cartesian_position.pose.position.z = z;
-
             
                 linear_path.push_back(command_cartesian_position.pose);
                 fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
@@ -290,10 +375,17 @@ int main (int argc, char **argv) {
             drawing_point.position.x = x;
             drawing_point.position.y = y;
             drawing_point.position.z = z;
-            drawing_stroke.push_back(drawing_point); // push the point
 
+            drawing_stroke.push_back(drawing_point); // push the point
         }
     }
+
+    linear_path.clear();
+    linear_path.push_back(init_cartesian_position.pose);
+    fraction = move_group.computeCartesianPath(linear_path, eef_step, jump_threshold, trajectory);
+    my_plan.trajectory_ = trajectory;
+    move_group.execute(my_plan);  //ros::Duration(0.1).sleep();
+    if (fraction < 0.5) ROS_WARN_STREAM("MOVE INIT ERROR");
 
     cerr<<"Stopping spinner..."<<endl;
     spinner.stop();
