@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Parameters to pass to the ROS node -->
+  <arg name="move_group" default="manipulator"/>
+  <arg name="ee_link" default="iiwa_link_ee"/>
+  <arg name="ros_rate" default="100"/>
+  <arg name="model" default="iiwa7"/>
+  <arg name="sim" default="true"/>
+  <arg name="world" default="iiwa"/>
+  
+  <!--  This loads the robot description  -->
+  <include file="$(find iiwa_examples)/launch/moveit_planning_example.launch">
+    <arg name="sim" value="$(arg sim)"/>
+    <arg name="world" value="$(arg world)"/>
+    <arg name="model" value="$(arg model)"/>
+  </include>
+    
+  <!-- Here we call the ROS node we have written, with the parameters on top   -->
+  <node ns="iiwa" name="MoveSpline" pkg="iiwa_examples" type="drawing_spline" respawn="false" output="screen">
+    <!-- <param name="move_group" value="$(arg move_group)"/> -->
+    <!-- <param name="ee_link" value="$(arg ee_link)"/> -->
+    <!-- <param name="ros_rate" value="$(arg ros_rate)"/> -->
+  </node>
+  
+</launch>

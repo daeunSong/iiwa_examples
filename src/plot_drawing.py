@@ -25,6 +25,7 @@ import matplotlib.pylab as plt
 import mpl_toolkits.mplot3d as a3
 import numpy as np
 
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
 ax.grid(False)
@@ -36,6 +37,9 @@ for stroke in drawing:
     ys = list(np.zeros(len(xs)))
     ax.plot(xs,ys,zs,color='black',linewidth='0.5')
     plt.ion()
-    plt.show()
+
+    plt.draw()
 
 # plt.axis('square')    // For the right scale
+plt.show(block=True)
+print("End *^^*")
