@@ -2166,7 +2166,3 @@ End
 0.179499 0.16
 0.179999 0.16
 End
-<<<<<<< HEAD
-
-=======
->>>>>>> refs/remotes/origin/wip_orientation
