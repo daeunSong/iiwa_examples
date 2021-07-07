@@ -12,8 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_visual_tools
 )
 
-add_subdirectory(submodule/moveit_visual_tools)
-
 catkin_package()
 
 include_directories(include ${catkin_INCLUDE_DIRS})
@@ -38,6 +36,3 @@ add_executable(move_spline src/move_spline_demo.cpp)
 add_dependencies(move_spline iiwa_msgs_generate_messages_cpp)
 target_link_libraries(move_spline ${catkin_LIBRARIES})
 
-add_executable(drawing_spline src/drawing_iiwa.cpp)
-add_dependencies(drawing_spline iiwa_msgs_generate_messages_cpp)
-target_link_libraries(drawing_spline ${catkin_LIBRARIES})
