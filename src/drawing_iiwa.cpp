@@ -162,11 +162,7 @@ vector<string> split(string input, char delimiter){
     return ans;
 }
 
-<<<<<<< HEAD
-int main (int argc, char **argv)
-{
-	ros::init(argc, argv, "move_spline");
-=======
+
 vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
     vector<double> normal;
     vector<double> P1, P2;
@@ -199,7 +195,6 @@ vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
 int main (int argc, char **argv)
 {
 	ros::init(argc, argv, "CommandRobotIIWA");
->>>>>>> refs/remotes/origin/wip_orientation
 	ros::NodeHandle nh;
 
 	// Set speed limit for motions in joint coordinates
@@ -316,9 +311,7 @@ int main (int argc, char **argv)
 	sleepForMotion(iiwa_time_destination, 2.0);
 	ros::Duration(0.2).sleep();
 
-<<<<<<< HEAD
     // TXT file with list of coordinates
-=======
     // get 3 points on wall and calculate normal vector  ---------------------------------------------------------------------------------
     ROS_INFO("Detecting 3 points on wall ... ");
     vector<double> normal;
@@ -384,8 +377,6 @@ int main (int argc, char **argv)
     y_formula = -1*(normal[3])/normal[1];
 
 
-    // TXT file with list of coordinates  ------------------------------------------------------------------------------------------------
->>>>>>> refs/remotes/origin/wip_orientation
     ifstream txt(ros::package::getPath("iiwa_examples")+TXT_FILE);
     // check if text file is well opened
     if(!txt.is_open()){
@@ -441,8 +432,7 @@ int main (int argc, char **argv)
             y = stod(tempSplit[0]);
             z = stod(tempSplit[1])+TRANSLATE_UP;
 
-<<<<<<< HEAD
-=======
+
             if(ang != 0){ // if ridgeback is not parallel to the wall
                 double radius = abs(y_formula - y);
                 // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
@@ -450,7 +440,6 @@ int main (int argc, char **argv)
                 y = radius * cos(ang) + y_formula;
             }    
 
->>>>>>> refs/remotes/origin/wip_orientation
 			if (!ready_to_draw){
 				// move to the ready position (off the wall)
 				ROS_INFO("Moving To Ready Position ... ");
