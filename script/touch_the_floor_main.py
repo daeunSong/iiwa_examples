@@ -109,13 +109,13 @@ class MainController(object):
         loginfo("ADD OBJECT")
 
         ## RVIZ
-        box_pose = geometry_msgs.msg.PoseStamped()
-        box_pose.header.frame_id = "world"
-        box_pose.pose = self.move_group.get_current_pose().pose
-        box_pose.pose.position.x = 0.56
-        box_pose.pose.position.z = 0.05
-        box_name = "box"
-        self.scene.add_box(box_name, box_pose, size=(0.1, 0.1, 0.1))
+        cylinder_pose = geometry_msgs.msg.PoseStamped()
+        cylinder_pose.header.frame_id = "world"
+        cylinder_pose.pose = self.move_group.get_current_pose().pose
+        cylinder_pose.pose.position.x = 0.56
+        cylinder_pose.pose.position.z = 0.05
+        cylinder_name = "cylinder"
+        self.scene.add_cylinder(cylinder_name, cylinder_pose, height=1.0, radius=0.05)
 
         ## GAZEBO
 

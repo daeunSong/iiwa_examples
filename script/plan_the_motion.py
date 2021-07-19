@@ -54,7 +54,7 @@ class MainController(object):
         self.ee_link = ee_link
         self.eef_ft = None
 
-        self.scene.remove_world_object("box")
+        self.scene.remove_world_object("cylinder")
 
         ## force torque sensor
         self.tf_buffer = tf2_ros.Buffer()
@@ -94,11 +94,11 @@ class MainController(object):
     def add_object(self, pose):
         loginfo("ADD OBJECT")
         ## RVIZ
-        box_pose = geometry_msgs.msg.PoseStamped()
-        box_pose.header.frame_id = "world"
-        box_pose.pose = pose
-        box_name = "box"
-        self.scene.add_box(box_name, box_pose, size=(0.1, 0.1, 1))
+        cylinder_pose = geometry_msgs.msg.PoseStamped()
+        cylinder_pose.header.frame_id = "world"
+        cylinder_pose.pose = pose
+        cylinder_name = "cylinder"
+        self.scene.add_cylinder(cylinder_name, cylinder_pose, height=1.0, radius=0.05)
 
     def go_to_joint_state(self):
         move_group = self.move_group
@@ -175,7 +175,7 @@ class MainController(object):
             force_y = self.eef_ft.force.y
             loginfo ("Force in y axis: {}".format(force_y))
             if reactive and force_y > 0.01:
-                print ("Touched the box")
+                print ("Touched the cylinder")
                 move_group.stop()
                 move_group.clear_pose_targets()
                 move_group.set_pose_target(target_pose)

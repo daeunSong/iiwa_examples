@@ -8,6 +8,10 @@ from std_msgs.msg import String
 from gazebo_msgs.srv import SpawnModel
 from gazebo_msgs.srv import DeleteModel
 import tf.transformations as tft
+import rospkg
+
+rospack = rospkg.RosPack()
+package_path = rospack.get_path('iiwa_examples')
 
 def cb_model_spawner(msg):
     if (msg.data == "pub"):
@@ -24,8 +28,8 @@ def cb_model_spawner(msg):
         object_pose.orientation.w = 1.0
 
         spawn_model(
-            model_name='simple_box',
-            model_xml=open('/home/glab/ros_ws/src/iiwa_examples/script/models/simple_box.urdf').read(),
+            model_name='simple_cylinder',
+            model_xml=open(package_path+'/script/models/simple_cylinder.urdf').read(),
             robot_namespace='/',
             initial_pose=object_pose,
             reference_frame='world'
