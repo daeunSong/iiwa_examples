@@ -36,3 +36,6 @@ add_executable(move_spline src/move_spline_demo.cpp)
 add_dependencies(move_spline iiwa_msgs_generate_messages_cpp)
 target_link_libraries(move_spline ${catkin_LIBRARIES})
 
+add_executable(plan_the_motion src/plan_the_motion.cpp)
+add_dependencies(plan_the_motion iiwa_msgs_generate_messages_cpp)
+target_link_libraries(plan_the_motion ${catkin_LIBRARIES})
