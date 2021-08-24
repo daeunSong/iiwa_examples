@@ -24,5 +24,5 @@ rosrun iiwa_examples plan_the_motion.py __ns:=iiwa
 (c++)
 
 ```shell
-rosrun iiwa_examples plan_the_motion __ns:=iiwa
+rosrun iiwa_examples plan_motion __ns:=iiwa
 ```
