@@ -110,8 +110,8 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
-    iiwa_ros::state::CartesianPose iiwa_pose_state;
-    iiwa_pose_state.init("iiwa");
+  iiwa_ros::state::CartesianPose iiwa_pose_state;
+  iiwa_pose_state.init("iiwa");
 
 	// Create the action clients
 	// Passing "true" causes the clients to spin their own threads
@@ -124,8 +124,8 @@ int main (int argc, char **argv)
 	splineMotionClient.waitForServer();
 
 	// ROS spinner.
-    ros::AsyncSpinner spinner(1);
-    spinner.start();
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
 	ROS_INFO("Spinner started...");
 
 	ROS_INFO("Action server started, moving to start pose...");
@@ -160,11 +160,11 @@ int main (int argc, char **argv)
 		return 0;
 	}
 
-    ros::Duration(3).sleep(); // wait for 3 sec
+  ros::Duration(3).sleep(); // wait for 3 sec
 
-    // Get Current Position
-    iiwa_msgs::CartesianPose command_cartesian_position;
-    command_cartesian_position = iiwa_pose_state.getPose();
+  // Get Current Position
+  iiwa_msgs::CartesianPose command_cartesian_position;
+  command_cartesian_position = iiwa_pose_state.getPose();
 
 
 	ROS_INFO_STREAM("Executing spline motion...");
