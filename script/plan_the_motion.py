@@ -162,6 +162,7 @@ class MainController(object):
         self.add_object(object_pose)
 
         move_group.execute(plan[1], wait=False)
+        print (plan[1].waypoints_)
         # self.move_group.execute(plan, wait=False)
         # move_group.go(wait=False)
 
@@ -199,7 +200,7 @@ def main():
 
     c.go_to_joint_state()
     c.go_to_target_pose(reactive = reactive)
-    moveit_commander.roscpp_shutdown()
+    # moveit_commander.roscpp_shutdown()
 
 if __name__ == '__main__':
     try:
