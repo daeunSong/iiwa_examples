@@ -16,9 +16,10 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/Bear_Coordinates2.txt"
+#define TXT_FILE "/input/heart_path_m.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.52
+#define TRANSLATE_UP 0.43
+#define TARGET_SIZE 0.5
 
 using namespace std;
 using moveit::planning_interface::MoveItErrorCode;
@@ -245,34 +246,40 @@ int main (int argc, char **argv) {
     }
     */
 
-    //sample for simulation
-    current_cartesian_position.pose.position.x += 0.02;
-    P.push_back(current_cartesian_position.pose);
-    current_cartesian_position.pose.position.z += 0.04;
-    P.push_back(current_cartesian_position.pose);
-    current_cartesian_position.pose.position.x += 0.007;
-    current_cartesian_position.pose.position.y += 0.04;
-    current_cartesian_position.pose.position.z -= 0.04;
-    P.push_back(current_cartesian_position.pose);
-
-    cout << "IIWA_POSITION: " << init_cartesian_position.pose.position.x << " " << init_cartesian_position.pose.position.y << " " << init_cartesian_position.pose.position.z << endl;
-
-    normal = calculateNormal(P);
+//    //sample for simulation
+//    current_cartesian_position.pose.position.x += 0.02;
+//    P.push_back(current_cartesian_position.pose);
+//    current_cartesian_position.pose.position.z += 0.04;
+//    P.push_back(current_cartesian_position.pose);
+//    current_cartesian_position.pose.position.x += 0.007;
+//    current_cartesian_position.pose.position.y += 0.04;
+//    current_cartesian_position.pose.position.z -= 0.04;
+//    P.push_back(current_cartesian_position.pose);
+//
+//    cout << "IIWA_POSITION: " << init_cartesian_position.pose.position.x << " " << init_cartesian_position.pose.position.y << " " << init_cartesian_position.pose.position.z << endl;
+//
+//    normal = calculateNormal(P);
 
     init = true;
   }
 
-  cout << "TESTING: " << sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << " " << normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << endl;
-  double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
-  //if(sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) < 1) ang = 0;
-  double y_formula;  // save b from y = az + b as a is 0
-                     // a = -1*normal[2]/normal[1];
-  y_formula = -1*(normal[3])/normal[1];
-
-  cout << endl << "Y_FORMULA: " <<  y_formula << "ang: " << ang << endl << endl;
+//  cout << "TESTING: " << sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << " " << normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) << endl;
+//  double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
+//  //if(sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]) < 1) ang = 0;
+//  double y_formula;  // save b from y = az + b as a is 0
+//                     // a = -1*normal[2]/normal[1];
+//  y_formula = -1*(normal[3])/normal[1];
+//
+//  cout << endl << "Y_FORMULA: " <<  y_formula << "ang: " << ang << endl << endl;
 
   int stroke_num = 0;
   bool ready_to_draw = false;
+
+  getline(txt, line); // drawing size
+  vector<string> tempSplit_ = split(line, ' ');
+  double width = stod(tempSplit_[0]);
+  double height = stod(tempSplit_[1]);
+  double ratio = width / height;
 
   while(ros::ok() && getline(txt, line) && init){
     if(line == "End"){
@@ -336,15 +343,15 @@ int main (int argc, char **argv) {
     else{
       // read drawing
       vector<string> tempSplit = split(line, ' ');
-      y = stod(tempSplit[0]);
-      z = stod(tempSplit[1])+TRANSLATE_UP;
+      y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
+      z = (-stod(tempSplit[1])+0.5) * TARGET_SIZE + TRANSLATE_UP;
 
-      if(ang != 0){ // if ridgeback is not parallel to the wall
-        double radius = abs(y_formula - y);
-        // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
-        x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
-        y = radius * cos(ang) + y_formula;
-      }
+//      if(ang != 0){ // if ridgeback is not parallel to the wall
+//        double radius = abs(y_formula - y);
+//        // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
+//        x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
+//        y = radius * cos(ang) + y_formula;
+//      }
 
       /* make scale smaller
       y = 0.8*y;

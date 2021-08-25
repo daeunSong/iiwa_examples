@@ -21,9 +21,10 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/Square_Coordinates2.txt"
+#define TXT_FILE "/input/heart_path_c.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.52
+#define TRANSLATE_UP 0.43
+#define TARGET_SIZE 0.5
 
 using namespace std;
 

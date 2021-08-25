@@ -24,7 +24,8 @@
 #define _USE_MATH_DEFINES
 #define TXT_FILE "/input/heart_path_c.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.5
+#define TRANSLATE_UP 0.43
+#define TARGET_SIZE 0.5
 
 using namespace std;
 
@@ -163,34 +164,34 @@ vector<string> split(string input, char delimiter){
 }
 
 
-vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
-    vector<double> normal;
-    vector<double> P1, P2;
-    
-    // get 2 vectors from 3 points
-    P1.push_back(P[0].position.x - P[1].position.x);
-    P1.push_back(P[0].position.y - P[1].position.y);
-    P1.push_back(P[0].position.z - P[1].position.z);
-    P2.push_back(P[0].position.x - P[2].position.x);
-    P2.push_back(P[0].position.y - P[2].position.y);
-    P2.push_back(P[0].position.z - P[2].position.z);
-
-    // calculate normal vector
-    normal.push_back(P1[1]*P2[2] - P1[2]*P2[1]);
-    normal.push_back(P1[2]*P2[0] - P1[0]*P2[2]);
-    normal.push_back(P1[0]*P2[1] - P1[1]*P2[0]);
-
-    // make x of normal vector as 1
-    normal[1] = normal[1]/normal[0];
-    normal[2] = normal[2]/normal[0];
-    normal[0] = 1;
-
-    // find d (x + y + z + d = 0)
-    double d = -1*P[0].position.x - normal[1]*P[0].position.y - normal[2]*P[0].position.z;
-    normal.push_back(d);
-
-    return normal;
-}
+//vector<double> calculateNormal(vector<geometry_msgs::Pose> P){
+//    vector<double> normal;
+//    vector<double> P1, P2;
+//
+//    // get 2 vectors from 3 points
+//    P1.push_back(P[0].position.x - P[1].position.x);
+//    P1.push_back(P[0].position.y - P[1].position.y);
+//    P1.push_back(P[0].position.z - P[1].position.z);
+//    P2.push_back(P[0].position.x - P[2].position.x);
+//    P2.push_back(P[0].position.y - P[2].position.y);
+//    P2.push_back(P[0].position.z - P[2].position.z);
+//
+//    // calculate normal vector
+//    normal.push_back(P1[1]*P2[2] - P1[2]*P2[1]);
+//    normal.push_back(P1[2]*P2[0] - P1[0]*P2[2]);
+//    normal.push_back(P1[0]*P2[1] - P1[1]*P2[0]);
+//
+//    // make x of normal vector as 1
+//    normal[1] = normal[1]/normal[0];
+//    normal[2] = normal[2]/normal[0];
+//    normal[0] = 1;
+//
+//    // find d (x + y + z + d = 0)
+//    double d = -1*P[0].position.x - normal[1]*P[0].position.y - normal[2]*P[0].position.z;
+//    normal.push_back(d);
+//
+//    return normal;
+//}
 
 int main (int argc, char **argv)
 {
@@ -284,6 +285,7 @@ int main (int argc, char **argv)
   init_pose = iiwa_pose_state.getPose();
 	command_cartesian_position = init_pose;
 
+  // Move forward to detect the wall
   ROS_INFO("Start detecting the wall");
 	iiwa_msgs::MoveAlongSplineGoal splineMotion;
   splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
@@ -300,9 +302,9 @@ int main (int argc, char **argv)
 
   ROS_INFO("Moving Backward ... ");
 	command_cartesian_position = wall_pose;
-  double x = wall_pose.poseStamped.pose.position.x;//0.478509765292;
+  double x = wall_pose.poseStamped.pose.position.x;//0.478509765292;  // DEPTH
 	double y = wall_pose.poseStamped.pose.position.y;//0;
-	double z = wall_pose.poseStamped.pose.position.z;//0.613500561539;
+	double z = wall_pose.poseStamped.pose.position.z;//0.613500561539;  // HEIGHT
 	drawing_point = wall_pose.poseStamped.pose;
 
 	iiwa_control_mode.setPositionControlMode();
@@ -312,85 +314,90 @@ int main (int argc, char **argv)
 	ros::Duration(0.2).sleep();
 
   // TXT file with list of coordinates
-  // get 3 points on wall and calculate normal vector  ---------------------------------------------------------------------------------
-  ROS_INFO("Detecting 3 points on wall ... ");
-  vector<double> normal;
-  vector<geometry_msgs::Pose> P;
+//  // get 3 points on wall and calculate normal vector  ---------------------------------------------------------------------------------
+//  ROS_INFO("Detecting 3 points on wall ... ");
+//  vector<double> normal;
+//  vector<geometry_msgs::Pose> P;
+//
+//  P.push_back(wall_pose.poseStamped.pose);
+//
+//  // get one point above the wall_pose
+//  command_cartesian_position = iiwa_pose_state.getPose();
+//  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+//  command_cartesian_position.poseStamped.pose.position.x += BACKWARD;
+//  command_cartesian_position.poseStamped.pose.position.z += 0.05;
+//  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+//  // Execute motion
+//  splineMotionClient.sendGoal(splineMotion);
+//  splineMotionClient.waitForResult();
+//	splineMotion.spline.segments.clear();
+//  // wait for 3 sec
+//  ros::Duration(3).sleep();
+//  command_cartesian_position = iiwa_pose_state.getPose();
+//
+//  P.push_back(command_cartesian_position.poseStamped.pose);
+//
+//  // Move Backward
+//  ROS_INFO("Moving Backward ... ");
+//	iiwa_control_mode.setPositionControlMode();
+//	command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
+//	iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+//	sleepForMotion(iiwa_time_destination, 2.0);
+//	ros::Duration(0.2).sleep();
+//
+//
+//  // get one point on the right of the wall pose
+//  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+//  command_cartesian_position = wall_pose;
+//  command_cartesian_position.poseStamped.pose.position.x += 0.02;
+//  command_cartesian_position.poseStamped.pose.position.y += 0.05;
+//  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+//  // Execute motion
+//  splineMotionClient.sendGoal(splineMotion);
+//  splineMotionClient.waitForResult();
+//	splineMotion.spline.segments.clear();
+//  // wait for 3 sec
+//  ros::Duration(3).sleep();
+//  command_cartesian_position = iiwa_pose_state.getPose();
+//
+//  P.push_back(command_cartesian_position.poseStamped.pose);
+//
+//  // Move Backward
+//  ROS_INFO("Moving Backward ... ");
+//	iiwa_control_mode.setPositionControlMode();
+//	command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
+//	iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
+//	sleepForMotion(iiwa_time_destination, 2.0);
+//	ros::Duration(0.2).sleep();
 
-  P.push_back(wall_pose.poseStamped.pose);
 
-  // get one point above the wall_pose
-  command_cartesian_position = iiwa_pose_state.getPose();
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  command_cartesian_position.poseStamped.pose.position.x += BACKWARD;
-  command_cartesian_position.poseStamped.pose.position.z += 0.05;
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  // Execute motion
-  splineMotionClient.sendGoal(splineMotion);
-  splineMotionClient.waitForResult();
-	splineMotion.spline.segments.clear();
-  // wait for 3 sec
-  ros::Duration(3).sleep();
-  command_cartesian_position = iiwa_pose_state.getPose();
-
-  P.push_back(command_cartesian_position.poseStamped.pose);
-
-  // Move Backward
-  ROS_INFO("Moving Backward ... ");
-	iiwa_control_mode.setPositionControlMode();
-	command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-	iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-	sleepForMotion(iiwa_time_destination, 2.0);
-	ros::Duration(0.2).sleep();
-
-
-  // get one point on the right of the wall pose
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  command_cartesian_position = wall_pose;
-  command_cartesian_position.poseStamped.pose.position.x += 0.02;
-  command_cartesian_position.poseStamped.pose.position.y += 0.05;
-  splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
-  // Execute motion
-  splineMotionClient.sendGoal(splineMotion);
-  splineMotionClient.waitForResult();
-	splineMotion.spline.segments.clear();
-  // wait for 3 sec
-  ros::Duration(3).sleep();
-  command_cartesian_position = iiwa_pose_state.getPose();
-
-  P.push_back(command_cartesian_position.poseStamped.pose);
-
-  // Move Backward
-  ROS_INFO("Moving Backward ... ");
-	iiwa_control_mode.setPositionControlMode();
-	command_cartesian_position.poseStamped.pose.position.x -= BACKWARD;
-	iiwa_pose_command.setPose(command_cartesian_position.poseStamped);
-	sleepForMotion(iiwa_time_destination, 2.0);
-	ros::Duration(0.2).sleep();
-
-
-  normal = calculateNormal(P);
-  // calculate angle between wall and ridgeback
-  double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
-  double y_formula;  // save b from y = az + b as a is 0
-                     // a = -1*normal[2]/normal[1];
-  y_formula = -1*(normal[3])/normal[1];
+//  normal = calculateNormal(P);
+//  // calculate angle between wall and ridgeback
+//  double ang = acos(normal[0] / sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]+normal[2]));
+//  double y_formula;  // save b from y = az + b as a is 0
+//                     // a = -1*normal[2]/normal[1];
+//  y_formula = -1*(normal[3])/normal[1];
 
 
   ifstream txt(ros::package::getPath("iiwa_examples")+TXT_FILE);
   // check if text file is well opened
-  if(!txt.is_open()){
-      cout << "FILE NOT FOUND" << endl;
-      return 1;
+  if(!txt.is_open()) {
+    cout << "FILE NOT FOUND" << endl;
+    return 1;
   }
 
   string line;
   int stroke_num = 0;
 	bool ready_to_draw = false;
-  while (getline(txt, line))
-  {
-    if (line == "End")
-    {
+
+  getline(txt, line); // drawing size
+  vector<string> tempSplit_ = split(line, ' ');
+  double width = stod(tempSplit_[0]);
+  double height = stod(tempSplit_[1]);
+  double ratio = width / height;
+
+  while (getline(txt, line)) {
+    if (line == "End") {
       stroke_num ++;
 
       // move forward to the first drawing position
@@ -425,22 +432,22 @@ int main (int argc, char **argv)
       ready_to_draw = false;
       drawing_stroke.clear();
     }
-		else
-		{
+		else {
 			// read drawing
 			vector<string> tempSplit = split(line, ' ');
-      y = stod(tempSplit[0]);
-      z = stod(tempSplit[1])+TRANSLATE_UP;
+      y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
+      z += (-stod(tempSplit[1])+0.5) * TARGET_SIZE;
 
 
-      if(ang != 0){ // if ridgeback is not parallel to the wall
-        double radius = abs(y_formula - y);
-        // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
-        x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
-        y = radius * cos(ang) + y_formula;
-      }
 
-			if (!ready_to_draw){
+//      if(ang != 0){ // if ridgeback is not parallel to the wall
+//        double radius = abs(y_formula - y);
+//        // cout << "CALCULATING: " << ang << " " << sin(ang) << " " << cos(ang) << " " << radius << endl;
+//        x = radius * sin(ang); //+ init_cartesian_position.pose.position.x;
+//        y = radius * cos(ang) + y_formula;
+//      }
+
+			if (!ready_to_draw) {
 				// move to the ready position (off the wall)
 				ROS_INFO("Moving To Ready Position ... ");
 				iiwa_control_mode.setPositionControlMode();
@@ -456,7 +463,7 @@ int main (int argc, char **argv)
 				splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
 			}
 
-      drawing_point.position.x = x;
+      drawing_point.position.x = x + 0.001;
       drawing_point.position.y = y;
       drawing_point.position.z = z;
       drawing_stroke.push_back(drawing_point); // push the point
