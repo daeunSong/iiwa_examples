@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/Bear_Coordinates2.txt"
+#define TXT_FILE "/input/c_heart_to_line_in_range_34849.txt"
 #define BACKWARD 0.05
 #define TRANSLATE_UP 0.52
 

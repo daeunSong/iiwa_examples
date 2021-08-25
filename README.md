@@ -5,3 +5,9 @@ Clone the *moveit_visual_tools* repository of ours for better visualization resu
 ```shell
 git clone -b glab/drawing https://github.com/daeunSong/moveit_visual_tools.git
 ```
+
+
+```shell
+roslaunch iiwa_examples iiwa_drawing_moveit.launch
+```
+

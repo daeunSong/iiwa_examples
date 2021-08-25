@@ -311,6 +311,7 @@ int main (int argc, char **argv)
 	sleepForMotion(iiwa_time_destination, 2.0);
 	ros::Duration(0.2).sleep();
 
+/
     // TXT file with list of coordinates
     // get 3 points on wall and calculate normal vector  ---------------------------------------------------------------------------------
     ROS_INFO("Detecting 3 points on wall ... ");
