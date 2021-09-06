@@ -2,12 +2,12 @@
 <launch>
   <!-- Parameters to pass to the ROS node -->
   <arg name="move_group" default="manipulator"/>
-  <arg name="ee_link" default="tool_link"/>
-  <arg name="ros_rate" default="100"/>
-  <arg name="model" default="iiwa7_tool"/>
+  <arg name="ee_link" default="iiwa_link_ee"/>
+  <arg name="ros_rate" default="0.1"/>
+  <arg name="model" default="iiwa7"/>
   <arg name="sim" default="true"/>
-  <arg name="world" default="iiwa"/>
-  <arg name="tool_name" default="tool" />
+  <arg name="world" default="iiwa_drawing"/>
+  <arg name="rviz" default="true"/>
 
   <param name = "/iiwa/toolName" type="string" value="$(arg tool_name)" />
 
