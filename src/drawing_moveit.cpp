@@ -16,9 +16,10 @@
 #include <string>
 #include <vector>
 
-#define TXT_FILE "/input/heart_path_m.txt"
+#define TXT_FILE "/input/heart/heart_path_c.txt"
+//#define TXT_FILE "/input/heart/heart_c_par_fixed.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.43
+#define TRANSLATE_UP 0.4
 #define TARGET_SIZE 0.5
 
 using namespace std;
@@ -343,8 +344,10 @@ int main (int argc, char **argv) {
     else{
       // read drawing
       vector<string> tempSplit = split(line, ' ');
-      y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
-      z = (-stod(tempSplit[1])+0.5) * TARGET_SIZE + TRANSLATE_UP;
+      y = stod(tempSplit[0])/width * 1.5 - 0.5;
+      z = stod(tempSplit[1])/height * 1.5 - 0.1;
+//      y = (stod(tempSplit[0])-0.5)* ratio * TARGET_SIZE;
+//      z = (stod(tempSplit[1])-0.5)* (-1) * TARGET_SIZE + init_cartesian_position.pose.position.z;
 
 //      if(ang != 0){ // if ridgeback is not parallel to the wall
 //        double radius = abs(y_formula - y);

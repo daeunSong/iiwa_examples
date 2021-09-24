@@ -22,9 +22,10 @@
 #include <vector>
 
 #define _USE_MATH_DEFINES
-#define TXT_FILE "/input/heart_path_c.txt"
+#define TXT_FILE "/input/heart/heart_path_c.txt"
+//#define TXT_FILE "/input/heart/heart_c_par_fixed2.txt"
 #define BACKWARD 0.05
-#define TRANSLATE_UP 0.43
+#define TRANSLATE_UP 0.4
 #define TARGET_SIZE 0.5
 
 using namespace std;
@@ -71,8 +72,8 @@ static bool setPTPJointSpeedLimits(ros::NodeHandle& nh) {
 	ROS_INFO("Setting PTP joint speed limits...");
 	ros::ServiceClient setPTPJointSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetPTPJointSpeedLimits>("/iiwa/configuration/setPTPJointLimits");
 	iiwa_msgs::SetPTPJointSpeedLimits jointSpeedLimits;
-	jointSpeedLimits.request.joint_relative_velocity = 0.2;
-	jointSpeedLimits.request.joint_relative_acceleration = 0.5;
+	jointSpeedLimits.request.joint_relative_velocity = 1.0;//0.2;
+	jointSpeedLimits.request.joint_relative_acceleration = 1.0;//0.5;
 	if (!setPTPJointSpeedLimitsClient.call(jointSpeedLimits)) {
 		ROS_ERROR("Service call failed.");
 		return false;
@@ -90,11 +91,11 @@ static bool setPTPCartesianSpeedLimits(ros::NodeHandle& nh) {
 	ROS_INFO("Setting PTP Cartesian speed limits...");
 	ros::ServiceClient setPTPCartesianSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetPTPCartesianSpeedLimits>("/iiwa/configuration/setPTPCartesianLimits");
 	iiwa_msgs::SetPTPCartesianSpeedLimits cartesianSpeedLimits;
-	cartesianSpeedLimits.request.maxCartesianVelocity = 0.5;
-	cartesianSpeedLimits.request.maxCartesianAcceleration = 0.5;
+	cartesianSpeedLimits.request.maxCartesianVelocity = 1.0;//0.5;
+	cartesianSpeedLimits.request.maxCartesianAcceleration = 1.0;//0.5;
 	cartesianSpeedLimits.request.maxCartesianJerk = -1.0; // ignore
-	cartesianSpeedLimits.request.maxOrientationVelocity = 0.5;
-	cartesianSpeedLimits.request.maxOrientationAcceleration = 0.5;
+	cartesianSpeedLimits.request.maxOrientationVelocity = 1.0;//0.5;
+	cartesianSpeedLimits.request.maxOrientationAcceleration = 1.0;//0.5;
 	cartesianSpeedLimits.request.maxOrientationJerk = -1.0; // ignore
 	if (!setPTPCartesianSpeedLimitsClient.call(cartesianSpeedLimits)) {
 		ROS_ERROR("Failed.");
@@ -114,9 +115,9 @@ static bool setSmartServoLinSpeedLimits(ros::NodeHandle& nh) {
 	ros::ServiceClient setSmartServoLinSpeedLimitsClient = nh.serviceClient<iiwa_msgs::SetSmartServoLinSpeedLimits>("/iiwa/configuration/setSmartServoLinLimits");
 	iiwa_msgs::SetSmartServoLinSpeedLimits smartServoLinLimits;
 
-	smartServoLinLimits.request.max_cartesian_velocity.linear.x = 0.3;
-	smartServoLinLimits.request.max_cartesian_velocity.linear.y = 0.3;
-	smartServoLinLimits.request.max_cartesian_velocity.linear.z = 0.3;
+	smartServoLinLimits.request.max_cartesian_velocity.linear.x = 0.5;//0.3;
+	smartServoLinLimits.request.max_cartesian_velocity.linear.y = 0.5;//0.3;
+	smartServoLinLimits.request.max_cartesian_velocity.linear.z = 0.5;//0.3;
 	smartServoLinLimits.request.max_cartesian_velocity.angular.x = M_PI/10;
 	smartServoLinLimits.request.max_cartesian_velocity.angular.y = M_PI/10;
 	smartServoLinLimits.request.max_cartesian_velocity.angular.z = M_PI/10;
@@ -218,7 +219,7 @@ int main (int argc, char **argv)
 	}
 
 
-	iiwa_ros::command::CartesianPoseLinear iiwa_pose_command;
+iiwa_ros::command::CartesianPoseLinear iiwa_pose_command;
   iiwa_ros::state::CartesianPose iiwa_pose_state;
 
 	// for Cartesian Impedance Control
@@ -388,7 +389,7 @@ int main (int argc, char **argv)
 
   string line;
   int stroke_num = 0;
-	bool ready_to_draw = false;
+  bool ready_to_draw = false;
 
   getline(txt, line); // drawing size
   vector<string> tempSplit_ = split(line, ' ');
@@ -408,18 +409,19 @@ int main (int argc, char **argv)
       splineMotionClient.sendGoal(splineMotion);
       splineMotionClient.waitForResult();
       splineMotion.spline.segments.clear();
-      // ros::Duration(0.3).sleep();
+      ros::Duration(0.3).sleep();
 
       // draw a stroke
       ROS_INFO("Drawing %d th stroke ...", stroke_num);
       for (int i = 0 ; i < drawing_stroke.size(); i++)
           splineMotion.spline.segments.push_back(getSplineSegment(drawing_stroke[i], iiwa_msgs::SplineSegment::SPL));
 
+      ROS_INFO("Executing motion ... ");
       // Execute motion
       splineMotionClient.sendGoal(splineMotion);
       splineMotionClient.waitForResult();
       splineMotion.spline.segments.clear();
-      ros::Duration(0.5).sleep();
+      //ros::Duration(0.5).sleep();
 
       ROS_INFO("Move Backward");
       iiwa_control_mode.setPositionControlMode();
@@ -435,8 +437,10 @@ int main (int argc, char **argv)
 		else {
 			// read drawing
 			vector<string> tempSplit = split(line, ' ');
-      y = (stod(tempSplit[0])-0.5) * ratio * TARGET_SIZE;
-      z += (-stod(tempSplit[1])+0.5) * TARGET_SIZE;
+      y = stod(tempSplit[0])/width * 1.5 - 0.5;
+      z = stod(tempSplit[1])/height * 1.5 - 0.1;
+//      y = (stod(tempSplit[0])-0.5)* ratio * TARGET_SIZE;
+//      z = (stod(tempSplit[1])-0.5)* (-1) * TARGET_SIZE + init_cartesian_position.pose.position.z;
 
 
 
@@ -460,19 +464,19 @@ int main (int argc, char **argv)
 				ready_to_draw = true;
 				ros::Duration(1.0).sleep();
 
-				splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::LIN));
+				splineMotion.spline.segments.push_back(getSplineSegment(command_cartesian_position.poseStamped.pose, iiwa_msgs::SplineSegment::SPL));
 			}
 
-      drawing_point.position.x = x + 0.001;
+      drawing_point.position.x = x + 0.002;
       drawing_point.position.y = y;
       drawing_point.position.z = z;
       drawing_stroke.push_back(drawing_point); // push the point
 		}
   }
 
-	ROS_INFO("Moving To Wall Position ... ");
+	ROS_INFO("Moving To Init Position ... ");
 	iiwa_control_mode.setPositionControlMode();
-	iiwa_pose_command.setPose(wall_pose.poseStamped);
+	iiwa_pose_command.setPose(init_pose.poseStamped);
 	sleepForMotion(iiwa_time_destination, 2.0);
 
 	spinner.stop();
