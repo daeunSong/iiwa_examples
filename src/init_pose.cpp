@@ -107,7 +107,7 @@ int main (int argc, char **argv) {
         move_group.setJointValueTarget("iiwa_joint_4", -1.91986);
         move_group.setJointValueTarget("iiwa_joint_5", 0.0);
         move_group.setJointValueTarget("iiwa_joint_6", -0.785399);
-        move_group.setJointValueTarget("iiwa_joint_7", 0.0);
+        move_group.setJointValueTarget("iiwa_joint_7", -1.57);
         success_plan = move_group.plan(my_plan);
         if (success_plan == MoveItErrorCode::SUCCESS) {
             motion_done = move_group.execute(my_plan);
